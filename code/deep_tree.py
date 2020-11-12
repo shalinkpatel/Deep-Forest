@@ -9,14 +9,17 @@ class Leaf(nn.Module):
         """
         Init function. Does not require any inputs.
         """
-        self.__init__()
+        super(Leaf, self).__init__()
         self.best = None
     
     def populate_best(self, x, y):
         """
         Determines the best predictor for the node as a constant
         """
-        mode, _ = th.mode(y)
+        if y.shape[0] != 0:
+            mode, _ = th.mode(y)
+        else:
+            mode = 0
         self.best = mode
         return mode
 
@@ -39,7 +42,7 @@ class Node(nn.Module):
         - hidden: the hidden size of splitter
         - depth: the depth that the tree has left to construct
         """
-        self.__init__()
+        super(Node, self).__init__()
         self.splitter = nn.Sequential(
             nn.Linear(features[depth].shape[0], hidden),
             nn.LeakyReLU(),
@@ -64,13 +67,30 @@ class Node(nn.Module):
         Precomputation step to find the mode of the left and right split.
         - x: the input features
         - y: associated labels
-        """
-        decision = th.flatten(th.argmax(self.splitter(x[:, subset]), axis=0))
-        left_best = th.mode(y[decision == 0])
-        right_best = th.mode(y[decision == 1])
-        self.best = th.tensor([left_best, right_best])
-        self.left.populate_best(x[decision == 0], y[decision == 0])
-        self.right.populate_best(x[decision == 1], y[decision == 1])
+        """ 
+        if x.shape[0] != 0:
+            decision = th.flatten(th.argmax(self.splitter(x[:, self.subset]), axis=1))
+            if y[decision == 0].nelement() == 0:
+                left_best = 0
+                if y[decision == 1].nelement() == 0:
+                    right_best = 0
+                else:
+                    right_best, _ = th.mode(y[decision == 1])
+            else:
+                left_best, _ = th.mode(y[decision == 0])
+                if y[decision == 1].nelement() == 0:
+                    right_best = 0
+                else:
+                    right_best, _ = th.mode(y[decision == 1])
+            self.best = th.tensor([left_best, right_best])
+            self.left.populate_best(x[decision == 0], y[decision == 0])
+            self.right.populate_best(x[decision == 1], y[decision == 1])
+        else:
+            left_best = 0
+            right_best = 0
+            self.best = th.tensor([left_best, right_best])
+            self.left.populate_best(x, y)
+            self.right.populate_best(x, y)
     
     def forward(self, x):
         # TODO: Need to write this
@@ -79,3 +99,31 @@ class Node(nn.Module):
     def loss(self, x, y):
         # TODO: Need to write this
         pass
+
+if __name__ == '__main__':
+    ### System Test for Node
+
+    # 4 x 3 ==> batch x features
+    x = th.tensor(
+        [
+            [1, 2, 3],
+            [3, 4, 5],
+            [0, -1, 3],
+            [6, 5, 4]
+        ],
+        dtype=th.float32
+    )
+
+    # Labels
+    y = th.tensor([0, 1, 1, 1])
+
+    # Subset map. Will be randomized when we use the RF
+    features = {
+        2: th.tensor([0, 2]),
+        1: th.tensor([0, 1])
+    }
+    
+    # Construct model
+    model = Node(features, 5, 2)
+    model.populate_best(x, y)
+    print(model.best)
