@@ -127,3 +127,4 @@ if __name__ == '__main__':
     model = Node(features, 5, 2)
     model.populate_best(x, y)
     print(model.best)
+    
