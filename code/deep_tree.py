@@ -35,6 +35,7 @@ class Leaf(nn.Module):
         y = th.tensor([self.best], dtype=th.float32)
         return y.repeat_interleave(x.shape[0])
 
+
     def loss(self, x, y):
         # TODO: need to write this
         pass
