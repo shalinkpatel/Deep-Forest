@@ -1,6 +1,7 @@
 import torch as th
 from torch import nn as nn
 
+
 class Leaf(nn.Module):
     """
     Main leaf node class. This is the leaf of a decision tree
@@ -25,11 +26,13 @@ class Leaf(nn.Module):
 
     def forward(self, x):
         # TODO: need to write this
+
         pass
 
     def loss(self, x, y):
         # TODO: need to write this
         pass
+
 
 class Node(nn.Module):
     """
@@ -100,6 +103,7 @@ class Node(nn.Module):
         # TODO: Need to write this
         pass
 
+
 if __name__ == '__main__':
     ### System Test for Node
 
@@ -127,4 +131,4 @@ if __name__ == '__main__':
     model = Node(features, 5, 2)
     model.populate_best(x, y)
     print(model.best)
-    
+
