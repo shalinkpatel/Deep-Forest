@@ -30,10 +30,9 @@ class Leaf(nn.Module):
         """
         Forward function, returns the last computed best predictor for the leaf
         :param x: inputs to the tree, [num_inputs, num_features]
-        :return: a [num_inputs, 2] tensor representing the split as a probability
+        :return: the last computed best predictor for the leaf
         """
-        # TODO this
-        pass
+        return self.best
 
     def loss(self, x, y):
         # TODO: need to write this
