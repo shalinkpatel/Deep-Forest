@@ -107,12 +107,22 @@ class Node(nn.Module):
     
     def forward(self, x):
         """
-        Forward function, applies the splitter to an input tensor
+        Forward function, applies the splitter to an input tensor recursively (cascades data through tree)
         :param x: inputs to the tree, [num_inputs, num_features]
-        :return: a [num_inputs, 2] tensor representing the split as a probability
+        :return: the left and right
         """
         # return the softmax predictions
-        return self.splitter(x[:, self.subset])
+        splits = self.splitter(x[:, self.subset])
+        left_indices = splits[:, 0] >= 0.5
+        right_indices = splits[:, 0] < 0.5
+        left_data = x[left_indices]
+        right_data = x[right_indices]
+        y_pred = th.zeros_like(splits[:, 0])
+
+        y_pred[left_indices] = self.left.forward(left_data)
+        y_pred[right_indices] = self.right.forward(right_data)
+
+        return y_pred
 
     def loss(self, x, y):
         # TODO: Need to write this
