@@ -1,20 +1,23 @@
 import torch as th
 from torch import nn as nn
 
+
 class Leaf(nn.Module):
     """
     Main leaf node class. This is the leaf of a decision tree
     """
     def __init__(self):
         """
-        Init function. Does not require any inputs.
+        Init function.
+        - features: a dictionary of which features that a splitter has access to. Represents map depth => tensor of feature index
+        - depth: the depth that the tree has left to construct
         """
         super(Leaf, self).__init__()
         self.best = None
-    
+
     def populate_best(self, x, y):
         """
-        Determines the best predictor for the node as a constant
+        Determines the best predictor for the node as a constant, returns the mode of the inputted labels
         """
         if y.shape[0] != 0:
             mode, _ = th.mode(y)
@@ -24,12 +27,18 @@ class Leaf(nn.Module):
         return mode
 
     def forward(self, x):
-        # TODO: need to write this
-        pass
+        """
+        Forward function, returns the last computed best predictor for the leaf
+        :param x: inputs to the tree, [num_inputs, num_features]
+        :return: the last computed best predictor for the leaf
+        """
+        y = th.tensor([self.best], dtype=th.float32)
+        return y.repeat_interleave(x.shape[0])
 
     def loss(self, x, y):
         # TODO: need to write this
         pass
+
 
 class Node(nn.Module):
     """
@@ -64,12 +73,14 @@ class Node(nn.Module):
 
     def populate_best(self, x, y):
         """
-        Precomputation step to find the mode of the left and right split.
+        Pre-computation step to find the mode of the left and right split.
         - x: the input features
         - y: associated labels
         """ 
         if x.shape[0] != 0:
+            # apply splitter to get decision boundary
             decision = th.flatten(th.argmax(self.splitter(x[:, self.subset]), axis=1))
+            # cases of having no 0 / no 1 / combination of both predictions
             if y[decision == 0].nelement() == 0:
                 left_best = 0
                 if y[decision == 1].nelement() == 0:
@@ -82,10 +93,13 @@ class Node(nn.Module):
                     right_best = 0
                 else:
                     right_best, _ = th.mode(y[decision == 1])
+            # put calculated values into self variables
             self.best = th.tensor([left_best, right_best])
+            # recursively populate the rest of the tree
             self.left.populate_best(x[decision == 0], y[decision == 0])
             self.right.populate_best(x[decision == 1], y[decision == 1])
         else:
+            # if there is no data?
             left_best = 0
             right_best = 0
             self.best = th.tensor([left_best, right_best])
@@ -93,12 +107,28 @@ class Node(nn.Module):
             self.right.populate_best(x, y)
     
     def forward(self, x):
-        # TODO: Need to write this
-        pass
+        """
+        Forward function, applies the splitter to an input tensor recursively (cascades data through tree)
+        :param x: inputs to the tree, [num_inputs, num_features]
+        :return: the left and right
+        """
+        # return the softmax predictions
+        splits = self.splitter(x[:, self.subset])
+        left_indices = splits[:, 0] >= 0.5
+        right_indices = splits[:, 0] < 0.5
+        left_data = x[left_indices]
+        right_data = x[right_indices]
+        y_pred = th.zeros_like(splits[:, 0])
+
+        y_pred[left_indices] = self.left.forward(left_data)
+        y_pred[right_indices] = self.right.forward(right_data)
+
+        return y_pred
 
     def loss(self, x, y):
         # TODO: Need to write this
         pass
+
 
 if __name__ == '__main__':
     ### System Test for Node
@@ -127,4 +157,7 @@ if __name__ == '__main__':
     model = Node(features, 5, 2)
     model.populate_best(x, y)
     print(model.best)
-    
+
+    # Test forward
+    print(model(x))
+
