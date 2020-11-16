@@ -32,7 +32,8 @@ class Leaf(nn.Module):
         :param x: inputs to the tree, [num_inputs, num_features]
         :return: the last computed best predictor for the leaf
         """
-        return self.best
+        y = th.tensor([self.best], dtype=th.float32)
+        return y.repeat_interleave(x.shape[0])
 
     def loss(self, x, y):
         # TODO: need to write this
@@ -156,4 +157,7 @@ if __name__ == '__main__':
     model = Node(features, 5, 2)
     model.populate_best(x, y)
     print(model.best)
+
+    # Test forward
+    print(model(x))
 
