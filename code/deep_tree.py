@@ -162,6 +162,8 @@ if __name__ == '__main__':
     model.populate_best(x, y)
     print(model.best)
 
+    print([p.data for p in model.parameters()])
+
     # Test forward
     print(model(x))
 

@@ -21,17 +21,18 @@ class DeepForest(nn.Module):
         :param split_ratio: the ratio of features to be considered.
         :param hidden: the size of the hidden layers for all the trees (same across the whole forest currently)
         """
+        super(DeepForest, self).__init__()
 
         self.num_trees = num_trees
         self.tree_features = self.gen_tree_features(num_trees, depth, num_features, split_ratio)
 
         # trees: a numpy array of all the trees in the forest
-        self.trees = []
+        self.trees = nn.ModuleList()
         for tree_num in range(num_trees):
-            tree = Node(self.tree_features[tree_num], hidden, depth)
+            tree = Node(self.tree_features[tree_num], hidden, depth, 1)
             self.trees.append(tree)
 
-    def gen_tree_features(num_trees, depth, num_features, split_ratio):
+    def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
         """
         Function to generate the features subsets for all of the trees
         :param num_trees: the number of trees in the forest
@@ -40,12 +41,13 @@ class DeepForest(nn.Module):
         :param split_ratio: the ratio of features to be split on
         """
         tree_features = []
-        ctr = 1
         n = floor(split_ratio * num_features)
         for i in range(num_trees):
+            ctr = 1
             feats = {}
             for j in range((depth ** 2) - 1):
-                rg = shuffle(list(range(num_features)))
+                rg = list(range(num_features))
+                shuffle(rg)
                 feats[ctr] = th.tensor(rg[:n])
                 ctr += 1
             tree_features.append(feats)
@@ -76,3 +78,6 @@ class DeepForest(nn.Module):
             loss += self.trees[i].loss(x, y)
         return loss
 
+if __name__ == '__main__':
+    forest = DeepForest(10, 2, 4, 0.25, 10)
+    print([p.data for p in forest.parameters()] != [])
