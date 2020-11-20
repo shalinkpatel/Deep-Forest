@@ -35,6 +35,7 @@ class Leaf(nn.Module):
         y = th.tensor([self.best], dtype=th.float32)
         return y.repeat_interleave(x.shape[0])
 
+
     def loss(self, x, y):
         # TODO: need to write this
         pass
@@ -160,6 +161,8 @@ if __name__ == '__main__':
     model = Node(features, 5, 2, 1)
     model.populate_best(x, y)
     print(model.best)
+
+    print([p.data for p in model.parameters()])
 
     # Test forward
     print(model(x))
