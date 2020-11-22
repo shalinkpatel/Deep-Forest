@@ -35,8 +35,7 @@ class Leaf(nn.Module):
 
 
     def loss(self, x, y):
-        # TODO: need to write this
-        pass
+        return th.tensor(0, dtype=th.float32)
 
 
 class Node(nn.Module):
@@ -127,7 +126,13 @@ class Node(nn.Module):
         return y_pred
 
     def loss(self, x, y):
-        # TODO: Need to write this
+        """
+        Loss function, applies the backpropagation of the loss recursively through the tree
+        :param x: inputs to the tree, [num_inputs, num_features]
+        :param y: predicted labels
+        :return: ?
+        """
+        
         pass
 
 
