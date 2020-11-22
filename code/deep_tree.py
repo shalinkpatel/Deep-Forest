@@ -94,7 +94,7 @@ class Node(nn.Module):
                 else:
                     right_best, _ = th.mode(y[decision == 1])
             # put calculated values into self variables
-            self.best = th.tensor([left_best, right_best])
+            self.best = th.tensor([left_best, right_best], dtype=th.long)
             # recursively populate the rest of the tree
             self.left.populate_best(x[decision == 0], y[decision == 0])
             self.right.populate_best(x[decision == 1], y[decision == 1])
@@ -102,7 +102,7 @@ class Node(nn.Module):
             # if there is no data?
             left_best = 0
             right_best = 0
-            self.best = th.tensor([left_best, right_best])
+            self.best = th.tensor([left_best, right_best], dtype=th.long)
             self.left.populate_best(x, y)
             self.right.populate_best(x, y)
     
@@ -125,15 +125,33 @@ class Node(nn.Module):
 
         return y_pred
 
-    def loss(self, x, y):
+    def loss(self, x, y, loss):
         """
         Loss function, applies the backpropagation of the loss recursively through the tree
         :param x: inputs to the tree, [num_inputs, num_features]
-        :param y: predicted labels
-        :return: ?
+        :param y: associated labels
+        :param loss: loss value, inputted at initial value of 0
+        :return: total loss
         """
-        
-        pass
+        # Get the left and right split
+        split = self.splitter(x[:, self.subset])
+        left = split[:, 0]
+        right = split[:, 1]
+        # Get the label one-hot vecor
+        y_hot = nn.functional.one_hot(y, num_classes=-1)
+        # Let and right weight for cross-entropy
+        left_weighted = y_hot * left[:, None]
+        right_weighted = y_hot * right[:, None]
+        #left_best = nn.functional.one_hot(self.best[0], num_classes=2)
+        #right_best = nn.functional.one_hot(self.best[1], num_classes=2)
+        left_best = self.best[0].repeat(4)
+        right_best = self.best[1].repeat(4)
+        #.unsqueeze(0)
+        loss += nn.functional.cross_entropy(left_weighted, left_best.type(th.LongTensor))
+        loss += nn.functional.cross_entropy(right_weighted, right_best.type(th.LongTensor))
+        loss = self.left.loss(x, y, loss)
+        loss = self.right.loss(x, y, loss)
+        return loss
 
 
 if __name__ == '__main__':
@@ -168,5 +186,8 @@ if __name__ == '__main__':
     print([p.data for p in model.parameters()])
 
     # Test forward
-    print(model(x))
+    print(model.forward(x))
+
+    # Test loss
+    print(model.loss(x, y, th.tensor(0)))
 
