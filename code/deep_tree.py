@@ -166,7 +166,7 @@ if __name__ == '__main__':
     x[:, 1] -= 1.5
 
     # Labels
-    y = th.tensor(th.sin(x[:, 0]) < x[:, 1], dtype=th.long)
+    y = (th.sin(x[:, 0]) < x[:, 1]).long()
 
     # Subset map. Will be randomized when we use the RF
     features = {
