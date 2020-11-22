@@ -180,7 +180,7 @@ if __name__ == '__main__':
     }
     
     # Construct model
-    model = Node(features, 5, 3, 1)
+    model = Node(features, 10, 3, 1)
     print(model.best)
 
     print([p.data for p in model.parameters()])
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         if i % 100 == 0:
             print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x) == y).float())), str(loss)))
     
-    print("============\nFINAL ACC: %s" % str(th.mean((model.forward(x) == y).float())))
+    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x) == y).float())))
 
     print(y[:15])
     print(model.forward(x)[:15].long())
