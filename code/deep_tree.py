@@ -54,9 +54,9 @@ class Node(nn.Module):
         super(Node, self).__init__()
         self.splitter = nn.Sequential(
             nn.Linear(features[depth].shape[0], hidden),
-            nn.LeakyReLU(),
+            nn.Tanh(),
             nn.Linear(hidden, hidden),
-            nn.LeakyReLU(),
+            nn.Tanh(),
             nn.Linear(hidden, 2),
             nn.Softmax()
         )
@@ -159,11 +159,11 @@ if __name__ == '__main__':
     ### System Test for Node
 
     # 1000 x 2 ==> batch x features
-    x = th.rand([5000, 2])
-    x[:, 0] *= 4*pi
-    x[:, 0] -= 2*pi
-    x[:, 1] *= 2
-    x[:, 1] -= 1
+    x = th.rand([10000, 2])
+    x[:, 0] *= 2*pi
+    x[:, 0] -= pi
+    x[:, 1] *= 3
+    x[:, 1] -= 1.5
 
     # Labels
     y = th.tensor(th.sin(x[:, 0]) < x[:, 1], dtype=th.long)
@@ -202,6 +202,6 @@ if __name__ == '__main__':
 
     print(y[:15])
     print(model.forward(x)[:15].long())
-    cdict = {0: 'red', 1: 'blue'}
+    cdict = {0: 'green', 1: 'purple'}
     plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x).numpy()])
     plt.show()
