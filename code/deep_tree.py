@@ -110,7 +110,7 @@ class Node(nn.Module):
         """
         Forward function, applies the splitter to an input tensor recursively (cascades data through tree)
         :param x: inputs to the tree, [num_inputs, num_features]
-        :return: the left and right
+        :return: the predictions for the inputs [num_inputs]
         """
         # return the softmax predictions
         splits = self.splitter(x[:, self.subset])
@@ -142,11 +142,8 @@ class Node(nn.Module):
         # Let and right weight for cross-entropy
         left_weighted = y_hot * left[:, None]
         right_weighted = y_hot * right[:, None]
-        #left_best = nn.functional.one_hot(self.best[0], num_classes=2)
-        #right_best = nn.functional.one_hot(self.best[1], num_classes=2)
         left_best = self.best[0].repeat(4)
         right_best = self.best[1].repeat(4)
-        #.unsqueeze(0)
         loss += nn.functional.cross_entropy(left_weighted, left_best.type(th.LongTensor))
         loss += nn.functional.cross_entropy(right_weighted, right_best.type(th.LongTensor))
         loss = self.left.loss(x, y, loss)
