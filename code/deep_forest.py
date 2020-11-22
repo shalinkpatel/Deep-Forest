@@ -64,8 +64,25 @@ class DeepForest(nn.Module):
             self.trees[tree_num].populate_best(feats, y)
 
     def forward(self, x):
-        # TODO: Need to write this
-        pass
+        """
+        Forward pass function. Calls the forward function of every tree and finds the best
+        prediction for every input given all tree predictions
+        :param x: the input features
+        :return predictions:
+        """
+        first_feats = x[self.tree_features[0]]
+        predictions = self.trees[0].forward(first_feats)
+        for tree_num in range(1, self.num_trees):
+            feats = x[self.tree_features[tree_num]]
+            preds = self.trees[tree_num].forward(feats)
+            predictions = th.cat((predictions, preds), 1)
+        predictions = th.max(predictions, 0)
+        # Squeeze needed here? debugging needed
+        return predictions
+
+
+
+
 
     def loss(self, x, y):
         """
@@ -78,6 +95,8 @@ class DeepForest(nn.Module):
             loss += self.trees[i].loss(x, y)
         return loss
 
+
 if __name__ == '__main__':
-    forest = DeepForest(10, 2, 4, 0.25, 10)
+    # tree: num_trees, depth, num_features, split_ratio, hidden
+    forest = DeepForest(10, 3, 2, 0.25, 10)
     print([p.data for p in forest.parameters()] != [])
