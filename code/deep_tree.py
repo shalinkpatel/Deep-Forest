@@ -1,5 +1,7 @@
 import torch as th
 from torch import nn as nn
+import matplotlib.pyplot as plt
+from math import pi
 
 
 class Leaf(nn.Module):
@@ -52,9 +54,9 @@ class Node(nn.Module):
         super(Node, self).__init__()
         self.splitter = nn.Sequential(
             nn.Linear(features[depth].shape[0], hidden),
-            nn.LeakyReLU(),
+            nn.Tanh(),
             nn.Linear(hidden, hidden),
-            nn.LeakyReLU(),
+            nn.Tanh(),
             nn.Linear(hidden, 2),
             nn.Softmax()
         )
@@ -139,11 +141,13 @@ class Node(nn.Module):
         right = split[:, 1]
         # Get the label one-hot vecor
         y_hot = nn.functional.one_hot(y, num_classes=-1)
-        # Let and right weight for cross-entropy
+        # Left and right weight for cross-entropy
         left_weighted = y_hot * left[:, None]
         right_weighted = y_hot * right[:, None]
-        left_best = self.best[0].repeat(4)
-        right_best = self.best[1].repeat(4)
+
+        left_best = self.best[0].repeat(x.shape[0])
+        right_best = self.best[1].repeat(x.shape[0])
+        
         loss += nn.functional.cross_entropy(left_weighted, left_best.type(th.LongTensor))
         loss += nn.functional.cross_entropy(right_weighted, right_best.type(th.LongTensor))
         loss = self.left.loss(x, y, loss)
@@ -154,37 +158,50 @@ class Node(nn.Module):
 if __name__ == '__main__':
     ### System Test for Node
 
-    # 4 x 3 ==> batch x features
-    x = th.tensor(
-        [
-            [1, 2, 3],
-            [3, 4, 5],
-            [0, -1, 3],
-            [6, 5, 4]
-        ],
-        dtype=th.float32
-    )
+    # 1000 x 2 ==> batch x features
+    x = th.rand([10000, 2])
+    x[:, 0] *= 2*pi
+    x[:, 0] -= pi
+    x[:, 1] *= 3
+    x[:, 1] -= 1.5
 
     # Labels
-    y = th.tensor([0, 1, 1, 1])
+    y = th.tensor(th.sin(x[:, 0]) < x[:, 1], dtype=th.long)
 
     # Subset map. Will be randomized when we use the RF
     features = {
-        3: th.tensor([1, 2]),
-        2: th.tensor([0, 2]),
+        7: th.tensor([0, 1]),
+        6: th.tensor([0, 1]),
+        5: th.tensor([0, 1]),
+        4: th.tensor([0, 1]),
+        3: th.tensor([0, 1]),
+        2: th.tensor([0, 1]),
         1: th.tensor([0, 1])
     }
     
     # Construct model
-    model = Node(features, 5, 2, 1)
-    model.populate_best(x, y)
+    model = Node(features, 5, 3, 1)
     print(model.best)
 
     print([p.data for p in model.parameters()])
 
-    # Test forward
-    print(model.forward(x))
+    # Train
+    optimizer = th.optim.Adam(model.parameters())
+    for i in range(1000):
+        model.populate_best(x, y)
+        optimizer.zero_grad()
 
-    # Test loss
-    print(model.loss(x, y, th.tensor(0, dtype=th.float32)))
+        loss = model.loss(x, y, th.tensor([0], dtype=th.float32))
+        loss.backward()
+        optimizer.step()
 
+        if i % 100 == 0:
+            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x) == y).float())), str(loss)))
+    
+    print("============\nFINAL ACC: %s" % str(th.mean((model.forward(x) == y).float())))
+
+    print(y[:15])
+    print(model.forward(x)[:15].long())
+    cdict = {0: 'green', 1: 'purple'}
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x).numpy()])
+    plt.show()
