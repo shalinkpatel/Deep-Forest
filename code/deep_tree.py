@@ -34,8 +34,8 @@ class Leaf(nn.Module):
         return y.repeat_interleave(x.shape[0])
 
 
-    def loss(self, x, y):
-        return th.tensor(0, dtype=th.float32)
+    def loss(self, x, y, loss):
+        return loss
 
 
 class Node(nn.Module):
@@ -189,5 +189,5 @@ if __name__ == '__main__':
     print(model.forward(x))
 
     # Test loss
-    print(model.loss(x, y, th.tensor(0)))
+    print(model.loss(x, y, th.tensor(0, dtype=th.float32)))
 
