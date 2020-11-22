@@ -1,6 +1,5 @@
 import torch as th
 from torch import nn as nn
-import seaborn as sns
 import matplotlib.pyplot as plt
 from math import pi
 
@@ -161,10 +160,10 @@ if __name__ == '__main__':
 
     # 1000 x 2 ==> batch x features
     x = th.rand([5000, 2])
-    x[:, 0] *= 2*pi;
-    x[:, 0] -= pi;
-    x[:, 1] *= 2;
-    x[:, 1] -= 1;
+    x[:, 0] *= 4*pi
+    x[:, 0] -= 2*pi
+    x[:, 1] *= 2
+    x[:, 1] -= 1
 
     # Labels
     y = th.tensor(th.sin(x[:, 0]) < x[:, 1], dtype=th.long)
@@ -199,3 +198,6 @@ if __name__ == '__main__':
 
     print(y[:15])
     print(model.forward(x)[:15].long())
+    cdict = {0: 'red', 1: 'blue'}
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x).numpy()])
+    plt.show()
