@@ -9,8 +9,6 @@ class Leaf(nn.Module):
     def __init__(self):
         """
         Init function.
-        - features: a dictionary of which features that a splitter has access to. Represents map depth => tensor of feature index
-        - depth: the depth that the tree has left to construct
         """
         super(Leaf, self).__init__()
         self.best = None
