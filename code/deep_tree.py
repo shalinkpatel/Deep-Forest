@@ -171,13 +171,17 @@ if __name__ == '__main__':
 
     # Subset map. Will be randomized when we use the RF
     features = {
+        7: th.tensor([0, 1]),
+        6: th.tensor([0, 1]),
+        5: th.tensor([0, 1]),
+        4: th.tensor([0, 1]),
         3: th.tensor([0, 1]),
         2: th.tensor([0, 1]),
         1: th.tensor([0, 1])
     }
     
     # Construct model
-    model = Node(features, 5, 2, 1)
+    model = Node(features, 5, 3, 1)
     print(model.best)
 
     print([p.data for p in model.parameters()])
