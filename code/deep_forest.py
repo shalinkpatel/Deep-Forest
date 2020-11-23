@@ -96,7 +96,7 @@ if __name__ == '__main__':
     print([p.data for p in model.parameters()] != [])
 
     # 1000 x 2 ==> batch x features
-    x = th.rand([10000, 2])
+    x = th.rand([100, 2])
     x[:, 0] *= 2*pi
     x[:, 0] -= pi
     x[:, 1] *= 3
