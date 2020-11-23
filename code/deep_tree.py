@@ -26,17 +26,17 @@ class Leaf(nn.Module):
         self.best = mode
         return mode
 
-    def forward(self, x):
+    def forward(self, x, device=th.device('cpu')):
         """
         Forward function, returns the last computed best predictor for the leaf
         :param x: inputs to the tree, [num_inputs, num_features]
         :return: the last computed best predictor for the leaf
         """
-        y = th.tensor([self.best], dtype=th.float32)
+        y = th.tensor([self.best], dtype=th.float32).to(device)
         return y.repeat_interleave(x.shape[0])
 
 
-    def loss(self, x, y, loss):
+    def loss(self, x, y, loss, device):
         return loss
 
 
@@ -108,7 +108,7 @@ class Node(nn.Module):
             self.left.populate_best(x, y)
             self.right.populate_best(x, y)
     
-    def forward(self, x):
+    def forward(self, x, device=th.device('cpu')):
         """
         Forward function, applies the splitter to an input tensor recursively (cascades data through tree)
         :param x: inputs to the tree, [num_inputs, num_features]
@@ -120,14 +120,14 @@ class Node(nn.Module):
         right_indices = splits[:, 0] < 0.5
         left_data = x[left_indices]
         right_data = x[right_indices]
-        y_pred = th.zeros_like(splits[:, 0])
+        y_pred = th.zeros_like(splits[:, 0]).to(device)
 
-        y_pred[left_indices] = self.left.forward(left_data)
-        y_pred[right_indices] = self.right.forward(right_data)
+        y_pred[left_indices] = self.left.forward(left_data, device)
+        y_pred[right_indices] = self.right.forward(right_data, device)
 
         return y_pred
 
-    def loss(self, x, y, loss):
+    def loss(self, x, y, loss, device=th.device('cpu')):
         """
         Loss function, applies the backpropagation of the loss recursively through the tree
         :param x: inputs to the tree, [num_inputs, num_features]
@@ -148,10 +148,10 @@ class Node(nn.Module):
         left_best = self.best[0].repeat(x.shape[0])
         right_best = self.best[1].repeat(x.shape[0])
         
-        loss += nn.functional.cross_entropy(left_weighted, left_best.type(th.LongTensor))
-        loss += nn.functional.cross_entropy(right_weighted, right_best.type(th.LongTensor))
-        loss = self.left.loss(x, y, loss)
-        loss = self.right.loss(x, y, loss)
+        loss += nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
+        loss += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
+        loss = self.left.loss(x, y, loss, device)
+        loss = self.right.loss(x, y, loss, device)
         return loss
 
 
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     x[:, 1] -= 1.5
 
     # Labels
-    y = th.tensor(th.sin(x[:, 0]) < x[:, 1], dtype=th.long)
+    y = (th.sin(x[:, 0]) < x[:, 1]).long()
 
     # Subset map. Will be randomized when we use the RF
     features = {
@@ -180,10 +180,15 @@ if __name__ == '__main__':
     }
     
     # Construct model
-    model = Node(features, 5, 3, 1)
+    model = Node(features, 10, 3, 1)
     print(model.best)
 
     print([p.data for p in model.parameters()])
+
+    device = th.device("cuda" if th.cuda.is_available() else "cpu")
+    model = model.to(device)
+    x = x.to(device)
+    y = y.to(device)
 
     # Train
     optimizer = th.optim.Adam(model.parameters())
@@ -191,17 +196,17 @@ if __name__ == '__main__':
         model.populate_best(x, y)
         optimizer.zero_grad()
 
-        loss = model.loss(x, y, th.tensor([0], dtype=th.float32))
+        loss = model.loss(x, y, th.tensor([0], dtype=th.float32).to(device), device)
         loss.backward()
         optimizer.step()
 
         if i % 100 == 0:
-            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x) == y).float())), str(loss)))
+            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x, device) == y).float())), str(loss)))
     
-    print("============\nFINAL ACC: %s" % str(th.mean((model.forward(x) == y).float())))
+    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x, device) == y).float())))
 
     print(y[:15])
-    print(model.forward(x)[:15].long())
+    print(model.forward(x, device)[:15].long())
     cdict = {0: 'green', 1: 'purple'}
-    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x).numpy()])
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
     plt.show()

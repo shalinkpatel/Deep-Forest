@@ -2,8 +2,10 @@ import torch as th
 from torch import nn as nn
 from torch.functional import split
 from deep_tree import Node
-from math import floor
+from math import ceil
 from random import shuffle
+from math import pi
+import matplotlib.pyplot as plt
 
 
 class DeepForest(nn.Module):
@@ -41,7 +43,7 @@ class DeepForest(nn.Module):
         :param split_ratio: the ratio of features to be split on
         """
         tree_features = []
-        n = floor(split_ratio * num_features)
+        n = ceil(split_ratio * num_features)
         for i in range(num_trees):
             ctr = 1
             feats = {}
@@ -60,43 +62,70 @@ class DeepForest(nn.Module):
         :param y: associated labels
         """
         for tree_num in range(self.num_trees):
-            feats = x[self.tree_features[tree_num]]
-            self.trees[tree_num].populate_best(feats, y)
+            self.trees[tree_num].populate_best(x, y)
 
-    def forward(self, x):
+    def forward(self, x, device=th.device('cpu')):
         """
         Forward pass function. Calls the forward function of every tree and finds the best
         prediction for every input given all tree predictions
         :param x: the input features
         :return predictions:
         """
-        first_feats = x[self.tree_features[0]]
-        predictions = self.trees[0].forward(first_feats)
-        for tree_num in range(1, self.num_trees):
-            feats = x[self.tree_features[tree_num]]
-            preds = self.trees[tree_num].forward(feats)
-            predictions = th.cat((predictions, preds), 1)
-        predictions = th.max(predictions, 0)
-        # Squeeze needed here? debugging needed
-        return predictions
+        preds = []
+        for tree_num in range(0, self.num_trees):
+            predictions = self.trees[tree_num].forward(x, device)
+            preds.append(predictions)
+        predictions, _ = th.mode(th.stack(preds, 1), 1)
+        return predictions.to(device)
 
-
-
-
-
-    def loss(self, x, y):
+    def loss(self, x, y, device=th.device('cpu')):
         """
         Calculate the loss.
         :param x: the input features
         :param y: associated labels
         """
-        loss = 0
+        loss = th.tensor([0], dtype=th.float32).to(device)
         for i in range(self.num_trees):
-            loss += self.trees[i].loss(x, y)
+            loss = self.trees[i].loss(x, y, loss, device)
         return loss
 
 
 if __name__ == '__main__':
     # tree: num_trees, depth, num_features, split_ratio, hidden
-    forest = DeepForest(10, 3, 2, 0.25, 10)
-    print([p.data for p in forest.parameters()] != [])
+    model = DeepForest(10, 3, 2, 1, 10)
+    print([p.data for p in model.parameters()] != [])
+
+    # 1000 x 2 ==> batch x features
+    x = th.rand([10000, 2])
+    x[:, 0] *= 2*pi
+    x[:, 0] -= pi
+    x[:, 1] *= 3
+    x[:, 1] -= 1.5
+
+    # Labels
+    y = (th.sin(x[:, 0]) < x[:, 1]).long()
+
+    device = th.device("cuda" if th.cuda.is_available() else "cpu")
+    model = model.to(device)
+    x = x.to(device)
+    y = y.to(device)
+
+    optimizer = th.optim.Adam(model.parameters())
+    for i in range(1000):
+        model.populate_best(x, y)
+        optimizer.zero_grad()
+
+        loss = model.loss(x, y, device)
+        loss.backward()
+        optimizer.step()
+
+        if i % 50 == 0:
+            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x, device) == y).float())), str(loss)))
+    
+    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x, device) == y).float())))
+
+    print(y[:15])
+    print(model.forward(x, device)[:15].long())
+    cdict = {0: 'green', 1: 'purple'}
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
+    plt.show()
