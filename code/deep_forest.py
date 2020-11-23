@@ -64,7 +64,7 @@ class DeepForest(nn.Module):
         for tree_num in range(self.num_trees):
             self.trees[tree_num].populate_best(x, y)
 
-    def forward(self, x):
+    def forward(self, x, device=th.device('cpu')):
         """
         Forward pass function. Calls the forward function of every tree and finds the best
         prediction for every input given all tree predictions
@@ -73,20 +73,20 @@ class DeepForest(nn.Module):
         """
         preds = []
         for tree_num in range(0, self.num_trees):
-            predictions = self.trees[tree_num].forward(x)
+            predictions = self.trees[tree_num].forward(x, device)
             preds.append(predictions)
         predictions, _ = th.mode(th.stack(preds, 1), 1)
-        return predictions
+        return predictions.to(device)
 
-    def loss(self, x, y):
+    def loss(self, x, y, device=th.device('cpu')):
         """
         Calculate the loss.
         :param x: the input features
         :param y: associated labels
         """
-        loss = th.tensor([0], dtype=th.float32)
+        loss = th.tensor([0], dtype=th.float32).to(device)
         for i in range(self.num_trees):
-            loss = self.trees[i].loss(x, y, loss)
+            loss = self.trees[i].loss(x, y, loss, device)
         return loss
 
 
@@ -105,22 +105,27 @@ if __name__ == '__main__':
     # Labels
     y = (th.sin(x[:, 0]) < x[:, 1]).long()
 
+    device = th.device("cuda" if th.cuda.is_available() else "cpu")
+    model = model.to(device)
+    x = x.to(device)
+    y = y.to(device)
+
     optimizer = th.optim.Adam(model.parameters())
     for i in range(1000):
         model.populate_best(x, y)
         optimizer.zero_grad()
 
-        loss = model.loss(x, y)
+        loss = model.loss(x, y, device)
         loss.backward()
         optimizer.step()
 
         if i % 50 == 0:
-            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x) == y).float())), str(loss)))
+            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x, device) == y).float())), str(loss)))
     
-    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x) == y).float())))
+    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x, device) == y).float())))
 
     print(y[:15])
-    print(model.forward(x)[:15].long())
+    print(model.forward(x, device)[:15].long())
     cdict = {0: 'green', 1: 'purple'}
-    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x).numpy()])
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
     plt.show()
