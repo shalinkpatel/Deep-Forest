@@ -5,6 +5,7 @@ __pycache__/
 
 # Ignore .idea/workspace.xml file
 .idea/workspace.xml
+*.xml
 
 # C extensions
 *.so
