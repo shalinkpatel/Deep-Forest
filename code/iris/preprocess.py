@@ -1,7 +1,8 @@
+import torch as th
 import numpy as np
 from sklearn import datasets
 
-def get_iris_data(percent_train):
+def get_data(percent_train):
     """
     Read and parse the train and test file line by line, then tokenize the sentences to build the train and test data separately.
     Create a vocabulary dictionary that maps all the unique tokens from your train and test data as keys to a unique integer value.
@@ -19,13 +20,13 @@ def get_iris_data(percent_train):
     data = np.array(iris['data'])
     labels = np.array(iris['target'])
     # Shuffle the data and labels
-    num_examples = len(labels)
-    idx = np.random.permutation(num_examples)
+    idx = np.random.permutation(len(data))
     data = data[idx]
-    labels = labels[idx, :]
+    labels = labels[idx]
+    num_examples = len(labels)
     num_train = int(num_examples * ratio)
     # Slice relative to the given ratio
-    train_data, train_labels = data[0:num_train, :], labels[0:num_train]
-    test_data, test_labels = data[num_train:, :], labels[num_train:]
+    train_data, train_labels = th.tensor(data[:num_train]).float(), th.tensor(labels[:num_train])
+    test_data, test_labels = th.tensor(data[num_train:]).float(), th.tensor(labels[num_train:])
     # Return tuple of data and labels
     return train_data, train_labels, test_data, test_labels
