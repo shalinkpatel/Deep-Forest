@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1d4180bf-16d2-43a8-9e49-1737afc35468" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/deep-learning-final-project.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deep-learning-final-project.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/wine/benchmark.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/wine/benchmark.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/code/wine/preprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/wine/preprocess.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -37,7 +38,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.preprocess">
     <configuration name="deep_tree" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="deep-learning-final-project" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -59,8 +60,30 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="preprocess" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="deep-learning-final-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/code/wine" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/code/wine/preprocess.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.preprocess" />
         <item itemvalue="Python.deep_tree" />
       </list>
     </recent_temporary>
