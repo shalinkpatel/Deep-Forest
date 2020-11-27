@@ -1,11 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
+<<<<<<< HEAD
     <list default="true" id="1d4180bf-16d2-43a8-9e49-1737afc35468" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/code/wine/benchmark.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/wine/benchmark.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/code/wine/preprocess.py" beforeDir="false" afterPath="$PROJECT_DIR$/code/wine/preprocess.py" afterDir="false" />
+=======
+>>>>>>> fbc2fb8162e746c5f0929986cc80dcd21f99671e
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -99,6 +120,14 @@
       <option name="presentableId" value="Default" />
       <updated>1605298568215</updated>
     </task>
+    <task id="LOCAL-00001" summary="Added forward pass in deep forest without debugging">
+      <created>1606085234859</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1606085234859</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -114,42 +143,50 @@
       </map>
     </option>
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Added forward pass in deep forest without debugging" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added forward pass in deep forest without debugging" />
+  </component>
   <component name="WindowStateProjectService">
-    <state width="1419" height="286" key="GridCell.Tab.0.bottom" timestamp="1606084469737">
+    <state width="1419" height="286" key="GridCell.Tab.0.bottom" timestamp="1606089562977">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1606084469737" />
-    <state width="1419" height="286" key="GridCell.Tab.0.center" timestamp="1606084469736">
+    <state width="1419" height="286" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1606089562977" />
+    <state width="1419" height="286" key="GridCell.Tab.0.center" timestamp="1606089562977">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1606084469736" />
-    <state width="1419" height="286" key="GridCell.Tab.0.left" timestamp="1606084469735">
+    <state width="1419" height="286" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1606089562977" />
+    <state width="1419" height="286" key="GridCell.Tab.0.left" timestamp="1606089562976">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1606084469735" />
-    <state width="1419" height="286" key="GridCell.Tab.0.right" timestamp="1606084469737">
+    <state width="1419" height="286" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1606089562976" />
+    <state width="1419" height="286" key="GridCell.Tab.0.right" timestamp="1606089562977">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1606084469737" />
-    <state width="1419" height="286" key="GridCell.Tab.1.bottom" timestamp="1606084469739">
+    <state width="1419" height="286" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1606089562977" />
+    <state width="1419" height="286" key="GridCell.Tab.1.bottom" timestamp="1606089562979">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.1.bottom/0.23.1440.877@0.23.1440.877" timestamp="1606084469739" />
-    <state width="1419" height="286" key="GridCell.Tab.1.center" timestamp="1606084469738">
+    <state width="1419" height="286" key="GridCell.Tab.1.bottom/0.23.1440.877@0.23.1440.877" timestamp="1606089562979" />
+    <state width="1419" height="286" key="GridCell.Tab.1.center" timestamp="1606089562978">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.1.center/0.23.1440.877@0.23.1440.877" timestamp="1606084469738" />
-    <state width="1419" height="286" key="GridCell.Tab.1.left" timestamp="1606084469738">
+    <state width="1419" height="286" key="GridCell.Tab.1.center/0.23.1440.877@0.23.1440.877" timestamp="1606089562978" />
+    <state width="1419" height="286" key="GridCell.Tab.1.left" timestamp="1606089562978">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.1.left/0.23.1440.877@0.23.1440.877" timestamp="1606084469738" />
-    <state width="1419" height="286" key="GridCell.Tab.1.right" timestamp="1606084469739">
+    <state width="1419" height="286" key="GridCell.Tab.1.left/0.23.1440.877@0.23.1440.877" timestamp="1606089562978" />
+    <state width="1419" height="286" key="GridCell.Tab.1.right" timestamp="1606089562978">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
-    <state width="1419" height="286" key="GridCell.Tab.1.right/0.23.1440.877@0.23.1440.877" timestamp="1606084469739" />
+    <state width="1419" height="286" key="GridCell.Tab.1.right/0.23.1440.877@0.23.1440.877" timestamp="1606089562978" />
     <state x="229" y="100" key="SettingsEditor" timestamp="1606080164993">
       <screen x="0" y="23" width="1440" height="877" />
     </state>
     <state x="229" y="100" key="SettingsEditor/0.23.1440.877@0.23.1440.877" timestamp="1606080164993" />
+    <state x="320" y="188" key="Vcs.Push.Dialog.v2" timestamp="1606085236930">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="320" y="188" key="Vcs.Push.Dialog.v2/0.23.1440.877@0.23.1440.877" timestamp="1606085236930" />
   </component>
 </project>
