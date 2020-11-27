@@ -25,3 +25,4 @@ def get_wine_data(pct_train):
 if __name__ == '__main__':
     train_data, train_labels, test_data, test_labels = get_wine_data(80)
     print("done loading")
+
