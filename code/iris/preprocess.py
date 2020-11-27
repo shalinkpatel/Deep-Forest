@@ -10,7 +10,7 @@ def get_iris_data(percent_train):
     :param percent_train: percentage of data that is used for training (1 - 100)
     :return: Numpy arrays of train data [num_train x (numfeatures = 4)], train labels [num_train], test data
      [num_test x (numfeatures = 4)], test labels [num_test] (1-d list or array with testing words in vectorized/id form), vocabulary (Dict containg index->word mapping)
-    """
+    """ 
     np.random.seed(None)
     # Switch to ratio
     ratio = percent_train / 100
