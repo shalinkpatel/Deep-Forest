@@ -12,7 +12,7 @@ def get_data(percent_train):
     :return: Numpy arrays of train data [num_train x (numfeatures = 4)], train labels [num_train], test data
      [num_test x (numfeatures = 4)], test labels [num_test] (1-d list or array with testing words in vectorized/id form), vocabulary (Dict containg index->word mapping)
     """
-    data_dict = datasets.load_wine()
+    data_dict = datasets.load_breast_cancer()
     data = np.array(data_dict['data'])
     labels = np.array(data_dict['target'])
 
