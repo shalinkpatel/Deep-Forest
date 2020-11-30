@@ -13,7 +13,7 @@ class DeepForest(nn.Module):
     Deep Forest class. This represents a deep forest, composed of multiple trees.
     """
 
-    def __init__(self, num_trees, depth, num_features, split_ratio, hidden):
+    def __init__(self, num_trees, depth, num_features, split_ratio, hidden, transform=False):
         """
         Init function. Initializes all the trees in the forest
         :param num_trees: the number of trees the forest is supposed to have
@@ -31,7 +31,7 @@ class DeepForest(nn.Module):
         # trees: a numpy array of all the trees in the forest
         self.trees = nn.ModuleList()
         for tree_num in range(num_trees):
-            tree = Node(self.tree_features[tree_num], hidden, depth, 1)
+            tree = Node(self.tree_features[tree_num], hidden, depth, 1, num_features, transform)
             self.trees.append(tree)
 
     def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
@@ -92,7 +92,7 @@ class DeepForest(nn.Module):
 
 if __name__ == '__main__':
     # tree: num_trees, depth, num_features, split_ratio, hidden
-    model = DeepForest(10, 3, 2, 1, 10)
+    model = DeepForest(10, 3, 2, 1, 10, True)
     print([p.data for p in model.parameters()] != [])
 
     # 1000 x 2 ==> batch x features

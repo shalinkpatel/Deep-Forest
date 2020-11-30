@@ -44,7 +44,7 @@ class Node(nn.Module):
     """
     Main tree class. This represents a deep decision tree with learnable decision boundaries.
     """
-    def __init__(self, features, hidden, depth, id):
+    def __init__(self, features, hidden, depth, id, num_feats, transform=False):
         """
         Init function
         - features: a dictionary of which features that a splitter has access to. Represents map id => tensor of feature index
@@ -69,9 +69,21 @@ class Node(nn.Module):
             self.right = Leaf()
         else:
             id += 1
-            self.left = Node(features, hidden, depth - 1, id)
+            self.left = Node(features, hidden, depth - 1, id, num_feats, transform)
             id += 1
-            self.right = Node(features, hidden, depth - 1, id)
+            self.right = Node(features, hidden, depth - 1, id, num_feats, transform)
+
+        if transform:
+            self.transformer = nn.Sequential(
+                nn.Linear(num_feats, num_feats*2),
+                nn.Tanh(),
+                nn.Linear(num_feats*2, num_feats*2),
+                nn.Tanh(),
+                nn.Linear(num_feats*2, num_feats),
+                nn.Tanh()
+            )
+        else:
+            self.transformer = lambda x: x
 
     def populate_best(self, x, y):
         """
@@ -82,6 +94,7 @@ class Node(nn.Module):
         if x.shape[0] != 0:
             # apply splitter to get decision boundary
             decision = th.flatten(th.argmax(self.splitter(x[:, self.subset]), axis=1))
+            x = self.transformer(x)
             # cases of having no 0 / no 1 / combination of both predictions
             if y[decision == 0].nelement() == 0:
                 left_best = 0
@@ -116,6 +129,7 @@ class Node(nn.Module):
         """
         # return the softmax predictions
         splits = self.splitter(x[:, self.subset])
+        x = self.transformer(x)
         left_indices = splits[:, 0] >= 0.5
         right_indices = splits[:, 0] < 0.5
         left_data = x[left_indices]
@@ -137,6 +151,7 @@ class Node(nn.Module):
         """
         # Get the left and right split
         split = self.splitter(x[:, self.subset])
+        x = self.transformer(x)
         left = split[:, 0]
         right = split[:, 1]
         # Get the label one-hot vecor
@@ -180,7 +195,7 @@ if __name__ == '__main__':
     }
     
     # Construct model
-    model = Node(features, 10, 3, 1)
+    model = Node(features, 10, 3, 1, 2, True)
     print(model.best)
 
     print([p.data for p in model.parameters()])
