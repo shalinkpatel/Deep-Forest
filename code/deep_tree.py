@@ -163,13 +163,22 @@ class Node(nn.Module):
         return loss
 
     def get_splitter_scores(self, feats):
+        """
+        Function to derive the shapley scores for the splitter w.r.t to the features used at the node
+        :param feats: the features that represent the background with which to compute these scores
+        """
         feats_sub = feats[self.subset]
         explainer = shap.DeepExplainer(self.splitter, feats_sub)
         return explainer.expected_value
 
     def compute_importance(self, feats):
+        """
+        Function to tabulate and compute the final importance scores
+        :param feats: the background needed for the shapley scores
+        """
         scores = self.get_splitter_scores(feats)
         for i in range(len(scores)):
+            # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
             self.importance[self.subset[i].item()] += scores[i] * self.impurity.item()
         if isinstance(self.left, Node):
             self.left.compute_importance(feats)
