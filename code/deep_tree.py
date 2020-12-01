@@ -2,6 +2,8 @@ import torch as th
 from torch import nn as nn
 import matplotlib.pyplot as plt
 from math import pi
+import shap
+from collections import defaultdict
 
 
 class Leaf(nn.Module):
@@ -44,7 +46,7 @@ class Node(nn.Module):
     """
     Main tree class. This represents a deep decision tree with learnable decision boundaries.
     """
-    def __init__(self, features, hidden, depth, id):
+    def __init__(self, features, hidden, depth, id, importance=defaultdict(lambda: 0)):
         """
         Init function
         - features: a dictionary of which features that a splitter has access to. Represents map id => tensor of feature index
@@ -64,14 +66,19 @@ class Node(nn.Module):
         self.subset = features[id]
         self.best = []
 
+        self.importance = importance
+        self.depth = depth
+        self.impurity = None
+
         if depth == 1:
             self.left = Leaf()
             self.right = Leaf()
         else:
             id += 1
-            self.left = Node(features, hidden, depth - 1, id)
+            self.left = Node(features, hidden, depth - 1, id, self.importance)
             id += 1
-            self.right = Node(features, hidden, depth - 1, id)
+            self.right = Node(features, hidden, depth - 1, id, self.importance)
+
 
     def populate_best(self, x, y):
         """
@@ -148,11 +155,26 @@ class Node(nn.Module):
         left_best = self.best[0].repeat(x.shape[0])
         right_best = self.best[1].repeat(x.shape[0])
         
-        loss += nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
-        loss += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
+        self.impurity = nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
+        self.impurity += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
+        loss += self.impurity
         loss = self.left.loss(x, y, loss, device)
         loss = self.right.loss(x, y, loss, device)
         return loss
+
+    def get_splitter_scores(self, feats):
+        feats_sub = feats[self.subset]
+        explainer = shap.DeepExplainer(self.splitter, feats_sub)
+        return explainer.expected_value
+
+    def compute_importance(self, feats):
+        scores = self.get_splitter_scores(feats)
+        for i in range(len(scores)):
+            self.importance[self.subset[i].item()] += scores[i] * self.impurity.item()
+        if isinstance(self.left, Node):
+            self.left.compute_importance(feats)
+            self.right.compute_importance(feats)
+        return self.importance
 
 
 if __name__ == '__main__':
@@ -210,3 +232,5 @@ if __name__ == '__main__':
     cdict = {0: 'green', 1: 'purple'}
     plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
     plt.show()
+
+    print(model.compute_importance(x))
