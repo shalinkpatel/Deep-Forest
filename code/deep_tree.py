@@ -179,7 +179,7 @@ class Node(nn.Module):
         scores = self.get_splitter_scores(feats)
         for i in range(len(scores)):
             # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
-            self.importance[self.subset[i].item()] += scores[i] * self.impurity.item()
+            self.importance[self.subset[i].item()] += scores[i] * 1/self.impurity.item()
         if isinstance(self.left, Node):
             self.left.compute_importance(feats)
             self.right.compute_importance(feats)
