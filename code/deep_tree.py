@@ -181,7 +181,7 @@ if __name__ == '__main__':
     
     # Construct model
     model = Node(features, 10, 3, 1)
-    print(model.best)
+    print(model.best) 
 
     print([p.data for p in model.parameters()])
 
