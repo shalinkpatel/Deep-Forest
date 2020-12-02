@@ -2,6 +2,9 @@ import torch as th
 from torch import nn as nn
 import matplotlib.pyplot as plt
 from math import pi
+import shap
+from collections import defaultdict
+import numpy as np
 
 
 class Leaf(nn.Module):
@@ -44,7 +47,7 @@ class Node(nn.Module):
     """
     Main tree class. This represents a deep decision tree with learnable decision boundaries.
     """
-    def __init__(self, features, hidden, depth, id):
+    def __init__(self, features, hidden, depth, id, importance=defaultdict(lambda: 0)):
         """
         Init function
         - features: a dictionary of which features that a splitter has access to. Represents map id => tensor of feature index
@@ -64,14 +67,22 @@ class Node(nn.Module):
         self.subset = features[id]
         self.best = []
 
+        self.importance = importance
+        self.depth = depth
+        self.impurity = th.tensor(1.0, dtype=th.float32)
+
+        self.l_split = None
+        self.r_split = None
+
         if depth == 1:
             self.left = Leaf()
             self.right = Leaf()
         else:
             id += 1
-            self.left = Node(features, hidden, depth - 1, id)
+            self.left = Node(features, hidden, depth - 1, id, self.importance)
             id += 1
-            self.right = Node(features, hidden, depth - 1, id)
+            self.right = Node(features, hidden, depth - 1, id, self.importance)
+
 
     def populate_best(self, x, y):
         """
@@ -136,23 +147,65 @@ class Node(nn.Module):
         :return: total loss
         """
         # Get the left and right split
-        split = self.splitter(x[:, self.subset])
-        left = split[:, 0]
-        right = split[:, 1]
-        # Get the label one-hot vecor
-        y_hot = nn.functional.one_hot(y, num_classes=-1)
-        # Left and right weight for cross-entropy
-        left_weighted = y_hot * left[:, None]
-        right_weighted = y_hot * right[:, None]
+        try:
+            split = self.splitter(x[:, self.subset])
+            left = split[:, 0]
+            right = split[:, 1]
 
-        left_best = self.best[0].repeat(x.shape[0])
-        right_best = self.best[1].repeat(x.shape[0])
-        
-        loss += nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
-        loss += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
-        loss = self.left.loss(x, y, loss, device)
-        loss = self.right.loss(x, y, loss, device)
-        return loss
+            self.l_split = left
+            self.r_split = right
+            # Get the label one-hot vecor
+            y_hot = nn.functional.one_hot(y, num_classes=-1)
+            # Left and right weight for cross-entropy
+            left_weighted = y_hot * left[:, None]
+            right_weighted = y_hot * right[:, None]
+
+            left_best = self.best[0].repeat(x.shape[0])
+            right_best = self.best[1].repeat(x.shape[0])
+            
+            self.impurity = nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
+            self.impurity += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
+            loss += self.impurity
+            loss = self.left.loss(x[left > 0.5, :], y[left > 0.5], loss, device)
+            loss = self.right.loss(x[right > 0.5, :], y[right > 0.5], loss, device)
+            return loss
+        except RuntimeError:
+            return loss
+
+    def get_splitter_scores(self, feats):
+        """
+        Function to derive the shapley scores for the splitter w.r.t to the features used at the node
+        :param feats: the features that represent the background with which to compute these scores
+        """
+        feats_sub = feats[:, self.subset]
+        val = min(200, feats_sub.shape[0])
+        explainer = shap.DeepExplainer(self.splitter, feats_sub[-val:, :])
+        shap_values = explainer.shap_values(feats_sub[:val, :])
+        vals = np.zeros(shap_values[0][0].shape)
+        for i in shap_values:
+            for val in i:
+                vals += np.abs(val)
+        return vals
+
+    def compute_importance(self, feats):
+        """
+        Function to tabulate and compute the final importance scores
+        :param feats: the background needed for the shapley scores
+        """
+        try:
+            scores = self.get_splitter_scores(feats)
+            for i in range(len(scores)):
+                # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
+                if np.isnan(scores[i]):
+                    continue
+                else:
+                    self.importance[self.subset[i].item()] += scores[i] * 1/(self.impurity.item() + 0.0000001)
+            if isinstance(self.left, Node):
+                self.left.compute_importance(feats[self.l_split > 0.5])
+                self.right.compute_importance(feats[self.r_split > 0.5])
+            return self.importance
+        except IndexError:
+            return self.importance
 
 
 if __name__ == '__main__':
@@ -181,7 +234,7 @@ if __name__ == '__main__':
     
     # Construct model
     model = Node(features, 10, 3, 1)
-    print(model.best)
+    print(model.best) 
 
     print([p.data for p in model.parameters()])
 
@@ -208,5 +261,7 @@ if __name__ == '__main__':
     print(y[:15])
     print(model.forward(x, device)[:15].long())
     cdict = {0: 'green', 1: 'purple'}
-    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
-    plt.show()
+    #plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
+    #plt.show()
+
+    print(model.compute_importance(x))

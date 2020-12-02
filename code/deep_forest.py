@@ -6,6 +6,8 @@ from math import ceil
 from random import shuffle
 from math import pi
 import matplotlib.pyplot as plt
+from collections import defaultdict
+from tqdm import trange
 
 
 class DeepForest(nn.Module):
@@ -28,10 +30,12 @@ class DeepForest(nn.Module):
         self.num_trees = num_trees
         self.tree_features = self.gen_tree_features(num_trees, depth, num_features, split_ratio)
 
+        self.importance = defaultdict(lambda: 0)
+
         # trees: a numpy array of all the trees in the forest
         self.trees = nn.ModuleList()
         for tree_num in range(num_trees):
-            tree = Node(self.tree_features[tree_num], hidden, depth, 1)
+            tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
             self.trees.append(tree)
 
     def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
@@ -89,6 +93,20 @@ class DeepForest(nn.Module):
             loss = self.trees[i].loss(x, y, loss, device)
         return loss
 
+    def compute_importance(self, feats):
+        """
+        Function to tabulate and compute the final importance scores
+        :param feats: the background needed for the shapley scores
+        """
+        for i in trange(self.num_trees):
+            self.trees[i].compute_importance(feats)
+        total = 0
+        for _, v in self.importance.items():
+            total += v
+        for k, v in self.importance.items():
+            self.importance[k] = v/total
+        return self.importance
+
 
 if __name__ == '__main__':
     # tree: num_trees, depth, num_features, split_ratio, hidden
@@ -129,3 +147,5 @@ if __name__ == '__main__':
     cdict = {0: 'green', 1: 'purple'}
     plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
     plt.show()
+
+    print(model.compute_importance(x))
