@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from math import pi
 import shap
 from collections import defaultdict
+import numpy as np
 
 
 class Leaf(nn.Module):
@@ -176,9 +177,15 @@ class Node(nn.Module):
         Function to derive the shapley scores for the splitter w.r.t to the features used at the node
         :param feats: the features that represent the background with which to compute these scores
         """
-        feats_sub = feats[self.subset]
-        explainer = shap.DeepExplainer(self.splitter, feats_sub)
-        return explainer.expected_value
+        feats_sub = feats[:, self.subset]
+        val = min(200, feats_sub.shape[0])
+        explainer = shap.DeepExplainer(self.splitter, feats_sub[-val:, :])
+        shap_values = explainer.shap_values(feats_sub[:val, :])
+        vals = np.zeros(shap_values[0][0].shape)
+        for i in shap_values:
+            for val in i:
+                vals += np.abs(val)
+        return vals
 
     def compute_importance(self, feats):
         """
@@ -189,7 +196,10 @@ class Node(nn.Module):
             scores = self.get_splitter_scores(feats)
             for i in range(len(scores)):
                 # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
-                self.importance[self.subset[i].item()] += scores[i] * 1/self.impurity.item()
+                if np.isnan(scores[i]):
+                    continue
+                else:
+                    self.importance[self.subset[i].item()] += scores[i] * 1/(self.impurity.item() + 0.0000001)
             if isinstance(self.left, Node):
                 self.left.compute_importance(feats[self.l_split > 0.5])
                 self.right.compute_importance(feats[self.r_split > 0.5])
@@ -251,7 +261,7 @@ if __name__ == '__main__':
     print(y[:15])
     print(model.forward(x, device)[:15].long())
     cdict = {0: 'green', 1: 'purple'}
-    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
-    plt.show()
+    #plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
+    #plt.show()
 
     print(model.compute_importance(x))
