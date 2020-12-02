@@ -68,7 +68,10 @@ class Node(nn.Module):
 
         self.importance = importance
         self.depth = depth
-        self.impurity = None
+        self.impurity = th.tensor(1.0, dtype=th.float32)
+
+        self.l_split = None
+        self.r_split = None
 
         if depth == 1:
             self.left = Leaf()
@@ -143,24 +146,30 @@ class Node(nn.Module):
         :return: total loss
         """
         # Get the left and right split
-        split = self.splitter(x[:, self.subset])
-        left = split[:, 0]
-        right = split[:, 1]
-        # Get the label one-hot vecor
-        y_hot = nn.functional.one_hot(y, num_classes=-1)
-        # Left and right weight for cross-entropy
-        left_weighted = y_hot * left[:, None]
-        right_weighted = y_hot * right[:, None]
+        try:
+            split = self.splitter(x[:, self.subset])
+            left = split[:, 0]
+            right = split[:, 1]
 
-        left_best = self.best[0].repeat(x.shape[0])
-        right_best = self.best[1].repeat(x.shape[0])
-        
-        self.impurity = nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
-        self.impurity += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
-        loss += self.impurity
-        loss = self.left.loss(x, y, loss, device)
-        loss = self.right.loss(x, y, loss, device)
-        return loss
+            self.l_split = left
+            self.r_split = right
+            # Get the label one-hot vecor
+            y_hot = nn.functional.one_hot(y, num_classes=-1)
+            # Left and right weight for cross-entropy
+            left_weighted = y_hot * left[:, None]
+            right_weighted = y_hot * right[:, None]
+
+            left_best = self.best[0].repeat(x.shape[0])
+            right_best = self.best[1].repeat(x.shape[0])
+            
+            self.impurity = nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
+            self.impurity += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
+            loss += self.impurity
+            loss = self.left.loss(x[left > 0.5, :], y[left > 0.5], loss, device)
+            loss = self.right.loss(x[right > 0.5, :], y[right > 0.5], loss, device)
+            return loss
+        except RuntimeError:
+            return loss
 
     def get_splitter_scores(self, feats):
         """
@@ -176,14 +185,17 @@ class Node(nn.Module):
         Function to tabulate and compute the final importance scores
         :param feats: the background needed for the shapley scores
         """
-        scores = self.get_splitter_scores(feats)
-        for i in range(len(scores)):
-            # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
-            self.importance[self.subset[i].item()] += scores[i] * 1/self.impurity.item()
-        if isinstance(self.left, Node):
-            self.left.compute_importance(feats)
-            self.right.compute_importance(feats)
-        return self.importance
+        try:
+            scores = self.get_splitter_scores(feats)
+            for i in range(len(scores)):
+                # Here we weight the shapley scores representing relative importance at this node by the impurity metric in loss
+                self.importance[self.subset[i].item()] += scores[i] * 1/self.impurity.item()
+            if isinstance(self.left, Node):
+                self.left.compute_importance(feats[self.l_split > 0.5])
+                self.right.compute_importance(feats[self.r_split > 0.5])
+            return self.importance
+        except IndexError:
+            return self.importance
 
 
 if __name__ == '__main__':
