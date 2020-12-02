@@ -166,8 +166,8 @@ class Node(nn.Module):
             self.impurity = nn.functional.cross_entropy(left_weighted, (left_best.type(th.LongTensor)).to(device))
             self.impurity += nn.functional.cross_entropy(right_weighted, (right_best.type(th.LongTensor)).to(device))
             loss += self.impurity
-            loss = self.left.loss(x[left > 0.5, :], y[left > 0.5], loss, device)
-            loss = self.right.loss(x[right > 0.5, :], y[right > 0.5], loss, device)
+            loss = self.left.loss(x, y, loss, device)
+            loss = self.right.loss(x, y, loss, device)
             return loss
         except RuntimeError:
             return loss
