@@ -6,6 +6,12 @@ from math import ceil
 from random import shuffle
 from math import pi
 import matplotlib.pyplot as plt
+from collections import defaultdict
+from tqdm import trange
+import multiprocessing
+from multiprocessing import Queue
+import os
+import time
 
 
 class DeepForest(nn.Module):
@@ -13,26 +19,52 @@ class DeepForest(nn.Module):
     Deep Forest class. This represents a deep forest, composed of multiple trees.
     """
 
-    def __init__(self, num_trees, depth, num_features, split_ratio, hidden):
+    def __init__(self, num_trees, depth, num_features, split_ratio, hidden, threaded=True):
         """
         Init function. Initializes all the trees in the forest
         :param num_trees: the number of trees the forest is supposed to have
         :param depth: the depth of the trees
         :param tree_features: lists the features for each tree, as indexes into features
-        :param features: the number of features
         :param split_ratio: the ratio of features to be considered.
-        :param hidden: the size of the hidden layers for all the trees (same across the whole forest currently)
+        :param hidden: the size of the hidden layers for all the trees (same across the whole forest)
+        :param threaded: whether or not to thread the training process
         """
         super(DeepForest, self).__init__()
 
+        self.threaded = threaded
+        if threaded:
+            # Number of cores available,
+            self.num_processes = os.cpu_count()
+            if self.num_processes > num_trees:
+                self.num_processes = num_trees
+
+            # Number of trees corrected to be divisible by process count
+            offset = num_trees % self.num_processes
+            num_trees += self.num_processes - offset
+
+            # Number of trees to handle per process
+            self.trees_per_process = int(num_trees / self.num_processes)
+
         self.num_trees = num_trees
+
         self.tree_features = self.gen_tree_features(num_trees, depth, num_features, split_ratio)
 
-        # trees: a numpy array of all the trees in the forest
-        self.trees = nn.ModuleList()
-        for tree_num in range(num_trees):
-            tree = Node(self.tree_features[tree_num], hidden, depth, 1)
-            self.trees.append(tree)
+        self.importance = defaultdict(lambda: 0)
+
+        if threaded:
+            self.trees_list = []
+            for p in range(self.num_processes):
+                trees = nn.ModuleList()
+                for tree_num in range(self.trees_per_process):
+                    tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
+                    trees.append(tree)
+                self.trees_list.append(trees)
+
+        else:
+            self.trees = nn.ModuleList()
+            for tree_num in range(num_trees):
+                tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
+                self.trees.append(tree)
 
     def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
         """
@@ -55,49 +87,152 @@ class DeepForest(nn.Module):
             tree_features.append(feats)
         return tree_features
 
-    def populate_best(self, x, y):
+    def populate_best(self, trees, x, y):
         """
         Precomputation step to find the mode of the left and right split.
+        :param trees: the slice of trees to populate (nn.moduleList())
         :param x: the input features
         :param y: associated labels
         """
-        for tree_num in range(self.num_trees):
-            self.trees[tree_num].populate_best(x, y)
+        for tree in trees:
+            tree.populate_best(x, y)
 
-    def forward(self, x, device=th.device('cpu')):
+    def forward(self, trees, x, device=th.device('cpu')):
         """
         Forward pass function. Calls the forward function of every tree and finds the best
         prediction for every input given all tree predictions
+        :param trees: the slice is trees on which to compute (nn.ModuleList())
         :param x: the input features
         :return predictions:
         """
         preds = []
-        for tree_num in range(0, self.num_trees):
-            predictions = self.trees[tree_num].forward(x, device)
+        for tree in trees:
+            predictions = tree.forward(x, device)
             preds.append(predictions)
         predictions, _ = th.mode(th.stack(preds, 1), 1)
         return predictions.to(device)
 
-    def loss(self, x, y, device=th.device('cpu')):
+    def loss(self, trees, x, y, device=th.device('cpu')):
         """
         Calculate the loss.
+        :param x: the slice of trees for which to calculate loss (nn.ModuleList())
         :param x: the input features
         :param y: associated labels
         """
         loss = th.tensor([0], dtype=th.float32).to(device)
-        for i in range(self.num_trees):
-            loss = self.trees[i].loss(x, y, loss, device)
+        for tree in trees:
+            loss = tree.loss(x, y, loss, device)
         return loss
+
+    def compute_importance(self, feats):
+        """
+        Function to tabulate and compute the final importance scores
+        :param feats: the background needed for the shapley scores
+        """
+        for i in trange(self.num_trees):
+            self.trees[i].compute_importance(feats)
+        total = 0
+        for _, v in self.importance.items():
+            total += v
+        for k, v in self.importance.items():
+            self.importance[k] = v / total
+        return self.importance
+
+    def train(self, epochs, train_data, train_labels):
+        """
+        Training function. This function calls the appropriate training function based on whether the
+        deep forest is threaded or not.
+        :param epochs: the number of epochs to run
+        :param train_data: the data to train on
+        :param train_labels: the labels of the training data
+        """
+        if self.threaded:
+            self.threaded_train(epochs, train_data, train_labels)
+        else:
+            self.unthreaded_train(epochs, train_data, train_labels)
+
+    def threaded_train(self, epochs, train_data, train_labels):
+        """
+        Training function. Creates a process for each core to train a set of trees on different efficiently.
+        The start routine of each process is the thread_train() function.
+        :param epochs: the number of epochs to run
+        :param train_data: the data to train on
+        :param train_labels: the labels of the training data
+        """
+        starttime = time.time()
+        processes = []
+        for num_p in range(self.num_processes):
+            p = multiprocessing.Process(target=self.process_train,
+                                        args=(num_p, device, epochs, train_data[:, :], train_labels[:],
+                                              self.trees_list[num_p],))
+            processes.append(p)
+            p.start()
+        for p in processes:
+            p.join()
+
+        print("==============\nFINAL ACC: %s" % str(th.mean((self.forward(self.trees_list[0], train_data, device) == train_labels).float())))
+        print("==============Threaded training took " + str(time.time() - starttime) + "s==============")
+
+    def process_train(self, process, device, epochs, train_data, train_labels, trees):
+        """
+        Training function for a single process. Trains the slice of trees it is given independently of
+        other processes.
+        :param queue: a queue to store results
+        :param process: the process number
+        :param process: the process number
+        :param device: the device to use
+        :param epochs: the number of epochs to run
+        :param train_data: the data to train on
+        :param train_labels: the labels of the training data
+        :param trees: the slice of trees to train (nn.ModuleList())
+        """
+        optimizer = th.optim.Adam(trees.parameters())
+        for i in range(epochs):
+            self.populate_best(trees, train_data, train_labels)
+            optimizer.zero_grad()
+
+            loss = self.loss(trees, x, y, device)
+            loss.backward()
+            optimizer.step()
+
+            if i % 100 == 0:
+                print("====THREAD %d====EPOCH %d====\nAcc: %s\nLoss: %s" % (
+                    process, i, str(th.mean((self.forward(trees, train_data, device) == train_labels).float())), str(loss)))
+
+    def unthreaded_train(self, epochs, train_data, train_labels):
+        """
+        Training function without threads. Trains all the trees of the deep forest on a single core.
+        :param epochs: the number of epochs to run
+        :param train_data: the data to train on
+        :param train_labels: the labels of the training data
+        """
+        starttime = time.time()
+        optimizer = th.optim.Adam(self.parameters())
+        for i in range(epochs):
+            self.populate_best(self.trees, train_data, train_labels)
+            optimizer.zero_grad()
+
+            loss = self.loss(self.trees, train_data, train_labels, device)
+            loss.backward()
+            optimizer.step()
+
+            if i % 50 == 0:
+                print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (
+                    i, str(th.mean((self.forward(self.trees, train_data, device) == train_labels).float())), str(loss)))
+
+        print("==============\nFINAL ACC: %s" % str(th.mean((self.forward(self.trees, train_data, device) == train_labels).float())))
+        print("==============Unthreaded training took " + str(time.time() - starttime) + "s==============")
 
 
 if __name__ == '__main__':
-    # tree: num_trees, depth, num_features, split_ratio, hidden
+    # tree: num_trees, depth, num_features, split_ratio, hidden, threaded
     model = DeepForest(10, 3, 2, 1, 10)
-    print([p.data for p in model.parameters()] != [])
+    # Unthreaded model
+    # model = DeepForest(10, 3, 2, 1, 10, threaded=False)
 
     # 1000 x 2 ==> batch x features
     x = th.rand([100, 2])
-    x[:, 0] *= 2*pi
+    x[:, 0] *= 2 * pi
     x[:, 0] -= pi
     x[:, 1] *= 3
     x[:, 1] -= 1.5
@@ -110,22 +245,13 @@ if __name__ == '__main__':
     x = x.to(device)
     y = y.to(device)
 
-    optimizer = th.optim.Adam(model.parameters())
-    for i in range(1000):
-        model.populate_best(x, y)
-        optimizer.zero_grad()
+    # Train Epochs, train_data, train_labels
+    model.train(50, x, y)
 
-        loss = model.loss(x, y, device)
-        loss.backward()
-        optimizer.step()
-
-        if i % 50 == 0:
-            print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (i, str(th.mean((model.forward(x, device) == y).float())), str(loss)))
-    
-    print("==============\nFINAL ACC: %s" % str(th.mean((model.forward(x, device) == y).float())))
-
-    print(y[:15])
-    print(model.forward(x, device)[:15].long())
-    cdict = {0: 'green', 1: 'purple'}
-    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(x, device).cpu().numpy()])
-    plt.show()
+    # print(y[:15])
+    # print(model.forward(model.trees, x, device)[:15].long())
+    # cdict = {0: 'green', 1: 'purple'}
+    # plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(model.trees, x, device).cpu().numpy()])
+    # plt.show()
+    #
+    # print(model.compute_importance(x))
