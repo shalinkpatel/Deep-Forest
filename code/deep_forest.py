@@ -8,8 +8,7 @@ from math import pi
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from tqdm import trange
-import multiprocessing
-from multiprocessing import Queue
+import torch.multiprocessing as mp
 import os
 import time
 
@@ -51,20 +50,14 @@ class DeepForest(nn.Module):
 
         self.importance = defaultdict(lambda: 0)
 
-        if threaded:
-            self.trees_list = []
-            for p in range(self.num_processes):
-                trees = nn.ModuleList()
-                for tree_num in range(self.trees_per_process):
-                    tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
-                    trees.append(tree)
-                self.trees_list.append(trees)
+        self.trees = nn.ModuleList()
+        for tree_num in range(num_trees):
+            tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
+            self.trees.append(tree)
 
-        else:
-            self.trees = nn.ModuleList()
-            for tree_num in range(num_trees):
-                tree = Node(self.tree_features[tree_num], hidden, depth, 1, self.importance)
-                self.trees.append(tree)
+        # This is required for the ``fork`` method to work
+        if threaded:
+            self.share_memory()
 
     def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
         """
@@ -115,7 +108,7 @@ class DeepForest(nn.Module):
     def loss(self, trees, x, y, device=th.device('cpu')):
         """
         Calculate the loss.
-        :param x: the slice of trees for which to calculate loss (nn.ModuleList())
+        :param trees: the slice of trees for which to calculate loss (nn.ModuleList())
         :param x: the input features
         :param y: associated labels
         """
@@ -140,64 +133,51 @@ class DeepForest(nn.Module):
 
     def train(self, epochs, train_data, train_labels):
         """
-        Training function. This function calls the appropriate training function based on whether the
-        deep forest is threaded or not.
+        The training function. Calls the appropriate training function depending on whether
+        the model was instantiated as threaded or untreaded. The processes are created here
+        if threaded.
+        :param num_p: the number of the process
+        :param trees: the slice of trees for which to calculate loss (nn.ModuleList())
         :param epochs: the number of epochs to run
         :param train_data: the data to train on
         :param train_labels: the labels of the training data
         """
         if self.threaded:
-            self.threaded_train(epochs, train_data, train_labels)
+            processes = []
+            for num_p in range(self.num_processes):
+                # Start routine of process is threaded_train, with a slice of trees
+                p = mp.Process(target=self.threaded_train,
+                               args=(num_p, self.trees[num_p*self.trees_per_process:(num_p+1)*self.trees_per_process],
+                                     epochs, train_data, train_labels))
+                processes.append(p)
+                p.start()
+            for p in processes:
+                p.join()
         else:
             self.unthreaded_train(epochs, train_data, train_labels)
 
-    def threaded_train(self, epochs, train_data, train_labels):
-        """
-        Training function. Creates a process for each core to train a set of trees on different efficiently.
-        The start routine of each process is the thread_train() function.
-        :param epochs: the number of epochs to run
-        :param train_data: the data to train on
-        :param train_labels: the labels of the training data
-        """
-        starttime = time.time()
-        processes = []
-        for num_p in range(self.num_processes):
-            p = multiprocessing.Process(target=self.process_train,
-                                        args=(num_p, device, epochs, train_data[:, :], train_labels[:],
-                                              self.trees_list[num_p],))
-            processes.append(p)
-            p.start()
-        for p in processes:
-            p.join()
-
-        print("==============\nFINAL ACC: %s" % str(th.mean((self.forward(self.trees_list[0], train_data, device) == train_labels).float())))
-        print("==============Threaded training took " + str(time.time() - starttime) + "s==============")
-
-    def process_train(self, process, device, epochs, train_data, train_labels, trees):
+    def threaded_train(self, num_p, trees, epochs, train_data, train_labels):
         """
         Training function for a single process. Trains the slice of trees it is given independently of
         other processes.
-        :param queue: a queue to store results
-        :param process: the process number
-        :param process: the process number
-        :param device: the device to use
+        :param num_p: the number of the process
+        :param trees: the slice of trees for which to calculate loss (nn.ModuleList())
         :param epochs: the number of epochs to run
         :param train_data: the data to train on
         :param train_labels: the labels of the training data
-        :param trees: the slice of trees to train (nn.ModuleList())
         """
-        optimizer = th.optim.Adam(trees.parameters())
+        optimizer = th.optim.Adam(self.parameters())
         for i in range(epochs):
             self.populate_best(trees, train_data, train_labels)
             optimizer.zero_grad()
 
-            loss = self.loss(trees, x, y, device)
+            loss = self.loss(trees, train_data, train_labels)
             loss.backward()
             optimizer.step()
 
-            if i % 100 == 0:
-                print("====THREAD %d====EPOCH %d====\nAcc: %s\nLoss: %s" % (
-                    process, i, str(th.mean((self.forward(trees, train_data, device) == train_labels).float())), str(loss)))
+            if i % 50 == 0:
+                print("====THREAD %d====EPOCH %d====\nAcc: %s\nLoss: %s" % (num_p,
+                    i, str(th.mean((self.forward(trees, train_data) == train_labels).float())), str(loss)))
 
     def unthreaded_train(self, epochs, train_data, train_labels):
         """
@@ -206,29 +186,25 @@ class DeepForest(nn.Module):
         :param train_data: the data to train on
         :param train_labels: the labels of the training data
         """
-        starttime = time.time()
         optimizer = th.optim.Adam(self.parameters())
         for i in range(epochs):
             self.populate_best(self.trees, train_data, train_labels)
             optimizer.zero_grad()
 
-            loss = self.loss(self.trees, train_data, train_labels, device)
+            loss = self.loss(self.trees, train_data, train_labels)
             loss.backward()
             optimizer.step()
 
             if i % 50 == 0:
                 print("====EPOCH %d====\nAcc: %s\nLoss: %s" % (
-                    i, str(th.mean((self.forward(self.trees, train_data, device) == train_labels).float())), str(loss)))
-
-        print("==============\nFINAL ACC: %s" % str(th.mean((self.forward(self.trees, train_data, device) == train_labels).float())))
-        print("==============Unthreaded training took " + str(time.time() - starttime) + "s==============")
+                    i, str(th.mean((self.forward(self.trees, train_data) == train_labels).float())), str(loss)))
 
 
 if __name__ == '__main__':
     # tree: num_trees, depth, num_features, split_ratio, hidden, threaded
-    model = DeepForest(10, 3, 2, 1, 10)
+    # model = DeepForest(10, 3, 2, 1, 10)
     # Unthreaded model
-    # model = DeepForest(10, 3, 2, 1, 10, threaded=False)
+    model = DeepForest(10, 3, 2, 1, 10, threaded=False)
 
     # 1000 x 2 ==> batch x features
     x = th.rand([100, 2])
@@ -246,12 +222,20 @@ if __name__ == '__main__':
     y = y.to(device)
 
     # Train Epochs, train_data, train_labels
-    model.train(50, x, y)
+    starttime = time.time()
+    model.train(500, x, y)
+    if model.threaded:
+        model.threaded = False
+        model.populate_best(model.trees, x, y)
 
-    # print(y[:15])
-    # print(model.forward(model.trees, x, device)[:15].long())
-    # cdict = {0: 'green', 1: 'purple'}
-    # plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(model.trees, x, device).cpu().numpy()])
-    # plt.show()
-    #
-    # print(model.compute_importance(x))
+    print("==============\nFINAL ACC: %s" % str(
+            th.mean((model.forward(model.trees, x) == y).float())))
+    print("=====training took " + str(time.time() - starttime) + "s=====")
+
+    print(y[:15])
+    print(model.forward(model.trees, x, device)[:15].long())
+    cdict = {0: 'green', 1: 'purple'}
+    plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(model.trees, x, device).cpu().numpy()])
+    plt.show()
+
+    print(model.compute_importance(x))
