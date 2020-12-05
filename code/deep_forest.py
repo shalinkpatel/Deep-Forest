@@ -153,6 +153,8 @@ class DeepForest(nn.Module):
                 p.start()
             for p in processes:
                 p.join()
+            self.threaded = False
+            self.populate_best(self.trees, train_data, train_labels)
         else:
             self.unthreaded_train(epochs, train_data, train_labels)
 
@@ -224,9 +226,6 @@ if __name__ == '__main__':
     # Train Epochs, train_data, train_labels
     starttime = time.time()
     model.train(500, x, y)
-    if model.threaded:
-        model.threaded = False
-        model.populate_best(model.trees, x, y)
 
     print("==============\nFINAL ACC: %s" % str(
             th.mean((model.forward(model.trees, x) == y).float())))
