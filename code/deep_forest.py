@@ -48,7 +48,7 @@ class DeepForest(nn.Module):
 
         self.tree_features = self.gen_tree_features(num_trees, depth, num_features, split_ratio)
 
-        self.importance = defaultdict(lambda: 0)
+        self.importance = defaultdict(self.zero)
 
         self.trees = nn.ModuleList()
         for tree_num in range(num_trees):
@@ -58,6 +58,9 @@ class DeepForest(nn.Module):
         # This is required for the ``fork`` method to work
         if threaded:
             self.share_memory()
+
+    def zero(self):
+        return 0
 
     def gen_tree_features(self, num_trees, depth, num_features, split_ratio):
         """
@@ -204,9 +207,9 @@ class DeepForest(nn.Module):
 
 if __name__ == '__main__':
     # tree: num_trees, depth, num_features, split_ratio, hidden, threaded
-    # model = DeepForest(10, 3, 2, 1, 10)
+    model = DeepForest(10, 3, 2, 1, 10)
     # Unthreaded model
-    model = DeepForest(10, 3, 2, 1, 10, threaded=False)
+    # model = DeepForest(10, 3, 2, 1, 10, threaded=False)
 
     # 1000 x 2 ==> batch x features
     x = th.rand([100, 2])
