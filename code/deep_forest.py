@@ -158,6 +158,7 @@ class DeepForest(nn.Module):
                 p.join()
             self.threaded = False
             self.populate_best(self.trees, train_data, train_labels)
+            self.loss(self.trees, train_data, train_labels)
         else:
             self.unthreaded_train(epochs, train_data, train_labels)
 
