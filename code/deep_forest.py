@@ -241,4 +241,4 @@ if __name__ == '__main__':
     plt.scatter(x[:, 0], x[:, 1], c=[cdict[i] for i in model.forward(model.trees, x, device).cpu().numpy()])
     plt.show()
 
-    print(model.compute_importance(x))
+    print(dict(model.compute_importance(x)))
