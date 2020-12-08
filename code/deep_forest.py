@@ -140,8 +140,8 @@ class DeepForest(nn.Module):
         the model was instantiated as threaded or untreaded. The processes are created here
         if threaded.
         :param epochs: the number of epochs to run
-        :param train_data: the data to train on
-        :param train_labels: the labels of the training data
+        :param train_data: the data to train on [num_inputs, num_features]
+        :param train_labels: the labels of the training data [num_inputs]
         """
         if self.threaded:
             processes = []
