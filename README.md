@@ -1,7 +1,5 @@
 # deep-learning-final-project
 
-# deep-learning-final-project
-
 This repository contains the code for the Deep Forest classification model. This model was inspired by the Random Forest algorithm. Here, data splitting to the left and right child of each node in the decision tree is determined by an MLP of three layers.
 
 To instantiate our model, use the following call:
