@@ -33,7 +33,7 @@ Here are the necessary dependencies to run our model:
 - matplotlib
 - numpy
 
-# Folders - Here is a description of our code folder, containing our model
+### Folders - Here is a description of our code folder, containing our model
 
 `code`: the code folder contains deep_forest.py (the deep forest class, the class of the final model), deep_tree.py (the decision tree file, that contains node and leaf classes), and the dataset folders (Iris, Wine, Synthetic and Breast). Here is a description of these files.
 
