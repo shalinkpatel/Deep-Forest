@@ -4,30 +4,34 @@ This repository contains the code for the Deep Forest classification model. This
 
 To instantiate our model, use the following call:
 
-DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)\n
+```python
+DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)
 :param num_trees: the number of trees the forest is supposed to have
 :param depth: the depth of the trees
 :param tree_features: lists the features for each tree, as indexes into features
 :param split_ratio: the ratio of features to be considered.
 :param hidden: the size of the hidden layers for all the trees (same across the whole forest)
 :param threaded: whether or not to thread the training process, default is True
+```
 
 To train the model, use the following call:
 
+```python
 model.train(epochs, train_data, train_labels)
 :param epochs: the number of epochs to run
 :param train_data: the data to train on [num_inputs, num_features]
 :param train_labels: the labels of the training data [num_inputs]
+```
 
 Our model was trained on a synthetic dataset (classifying whether a point was above or below a sine curve) and on three UCI datasets (iris, wine and breast cancer datasets) and compared with a Random Forest classifier (from sci-kit learn) and a standard three-layer MLP. These testing and comparison jupyter notebook files can be found under code/<dataset>/benchmark.ipynb, where <dataset> is `synthetic`, `iris`, `wine` or `breast`.
 
 Here are the necessary dependencies to run our model:
--torch
--shap
--sklearn
--seaborn
--matplotlib
--numpy
+- torch
+- shap
+- sklearn
+- seaborn
+- matplotlib
+- numpy
 
 # Folders - Here is a description of our code folder, containing our model
 
@@ -36,6 +40,7 @@ Here are the necessary dependencies to run our model:
 	
 `deep_forest.py`: this file contains the code the for the DeepForest class, the class of the model. To instantiate this model, the arguments are as follows: 
 
+```python
 DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)
 :param num_trees: the number of trees the forest is supposed to have
 :param depth: the depth of the trees
@@ -43,13 +48,15 @@ DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)
 :param split_ratio: the ratio of features to be considered.
 :param hidden: the size of the hidden layers for all the trees (same across the whole forest)
 :param threaded: whether or not to thread the training process, default is True
+```
 
 This class contains the training function for the model, whose arguments are the number of epochs to train, the train data, and the train labels. The call is made as follows:
+```python
 model.train(epochs, train_data, train_labels)
 :param epochs: the number of epochs to run
 :param train_data: the data to train on [num_inputs, num_features]
 :param train_labels: the labels of the training data [num_inputs]
-
+```
 
 `deep_tree.py`: this file contains the code to build the decision tree and run the pre-computation, forward pass and loss calculation of the tree to train the model. The importance of the features at each node is also calculated here for the tree for the interpretation aspect of our model.
 
