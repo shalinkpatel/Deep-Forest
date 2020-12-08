@@ -31,10 +31,10 @@ Here are the necessary dependencies to run our model:
 
 # Folders - Here is a description of our code folder, containing our model
 
-`code` FOLDER: the code folder contains deep_forest.py (the deep forest class, the class of the final model), deep_tree.py (the decision tree file, that contains node and leaf classes), and the dataset folders (Iris, Wine, Synthetic and Breast). Here is a description of these files.
+`code`: the code folder contains deep_forest.py (the deep forest class, the class of the final model), deep_tree.py (the decision tree file, that contains node and leaf classes), and the dataset folders (Iris, Wine, Synthetic and Breast). Here is a description of these files.
 
 	
-`deep_forest.py` FILE: this file contains the code the for the DeepForest class, the class of the model. To instantiate this model, the arguments are as follows: 
+`deep_forest.py`: this file contains the code the for the DeepForest class, the class of the model. To instantiate this model, the arguments are as follows: 
 
 DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)
 :param num_trees: the number of trees the forest is supposed to have
@@ -51,17 +51,17 @@ model.train(epochs, train_data, train_labels)
 :param train_labels: the labels of the training data [num_inputs]
 
 
-`deep_tree.py` FILE: this file contains the code to build the decision tree and run the pre-computation, forward pass and loss calculation of the tree to train the model. The importance of the features at each node is also calculated here for the tree for the interpretation aspect of our model.
+`deep_tree.py`: this file contains the code to build the decision tree and run the pre-computation, forward pass and loss calculation of the tree to train the model. The importance of the features at each node is also calculated here for the tree for the interpretation aspect of our model.
 
 
-`code/<dataset>` FOLDERS:
+`code/<dataset>`:
 
 
-`synthetic` FOLDER: this folder contains the data for the synthetic dataset of our testing suite, which was classifying whether a point was above or below a sine curve. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
+`synthetic`: this folder contains the data for the synthetic dataset of our testing suite, which was classifying whether a point was above or below a sine curve. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
 
 
-`iris` FOLDER: this folder contains the data for the iris UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
+`iris`: this folder contains the data for the iris UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
 
-`wine` FOLDER: this folder contains the data for the wine UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
+`wine`: this folder contains the data for the wine UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
 
-`breast` FOLDER: this folder contains the data for the breast UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
+`breast`: this folder contains the data for the breast UCI dataset of our testing suite. This folder contains the pre-processing file (preprocess.py) where the data is created, and the jupypter notebook file that trains our model on it and compares it to our benchmark models (Random Forest and standard three-layer MLP).
