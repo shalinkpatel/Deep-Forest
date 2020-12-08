@@ -4,7 +4,7 @@ This repository contains the code for the Deep Forest classification model. This
 
 To instantiate our model, use the following call:
 
-DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)
+DeepForest(num_trees, depth, num_features, split_ratio, hidden, threaded=True)\n
 :param num_trees: the number of trees the forest is supposed to have
 :param depth: the depth of the trees
 :param tree_features: lists the features for each tree, as indexes into features
