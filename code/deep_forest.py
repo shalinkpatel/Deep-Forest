@@ -139,7 +139,6 @@ class DeepForest(nn.Module):
         The training function. Calls the appropriate training function depending on whether
         the model was instantiated as threaded or untreaded. The processes are created here
         if threaded.
-        :param num_p: the number of the process
         :param trees: the slice of trees for which to calculate loss (nn.ModuleList())
         :param epochs: the number of epochs to run
         :param train_data: the data to train on
